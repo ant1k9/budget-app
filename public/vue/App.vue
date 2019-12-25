@@ -1,0 +1,176 @@
+<template>
+    <div id="app" style="margin: 20px">
+        <h3> {{ card }} </h3>
+        <div>
+            <span id="card-buttons">
+                <button v-for="card in cards" style="margin: 10px" v-on:click="getSpendings(card)">
+                    {{ card }}
+                </button>
+            </span>
+            <button v-on:click="previousMonth()">&#8592;</button>
+            {{ spendingDateFormatted }}
+            <button v-on:click="nextMonth()">&#8594;</button>
+        </div>
+        <form method="post">
+            <table>
+                <tbody id="spendings-as-t">
+                    <tr v-for="type in types">
+                        <td style="padding: 12px"> {{ type }} </td>
+                        <td><input :name="type" :value="spendingsForType(type)"> </td>
+                    </tr>
+                </tbody>
+            </table>
+            <button>Send</button>
+            <input type="hidden" name="date" :value="spendingDateFormatted">
+            <input type="hidden" name="card" :value="card">
+        </form>
+        <table>
+            <tr>
+                <td><input v-model="newCard"></td>
+                <td style="padding: 10px"><button v-on:click="addCard()">Add card</button></td>
+                <td><input v-model="newType"></td>
+                <td style="padding: 10px"><button v-on:click="addType()">Add type</button></td>
+            </tr>
+        </table>
+        <hr style="width: 50%" align="left">
+        <div>
+            Full credit: {{ credit }}<br/><br/>
+            <form method="post" action="/credit">
+                Add debit/credit value:
+                <input name="value">
+                <button>Save</button>
+            </form>
+        </div>
+    </div>
+</template>
+
+<script>
+const formatDate = (d) =>
+    `${d.getUTCFullYear()}-${d.getMonth() > 8 ? "" : "0"}${d.getMonth() + 1}-01`;
+
+export default {
+    data() {
+        return {
+            'spendings': {},
+            'cards': [],
+            'types': [],
+            'spendingDate': undefined,
+            'spendingDateFormatted': '',
+            'card': '',
+            'credit': 0,
+            'newCard': '',
+            'newType': '',
+        }
+    },
+    methods: {
+        addCard: function() {
+            let t = document.getElementById('card-buttons');
+            let button = document.createElement('BUTTON');
+            button.style.margin = '10px';
+            button.onclick = _ => this.getSpendings(this.newCard);
+            button.textContent = this.newCard;
+            this.cards.push(this.newCard);
+            t.appendChild(button);
+        },
+        addType: function() {
+            let t = document.getElementById('spendings-as-t');
+            let tr = document.createElement('TR');
+            let td = document.createElement('TD');
+            td.textContent = this.newType;
+            td.style.padding = '12px';
+            tr.appendChild(td);
+
+            td = document.createElement('TD');
+            let input = document.createElement('INPUT');
+            input.setAttribute('name', this.newType);
+            input.setAttribute('value', '0');
+            td.appendChild(input);
+
+            tr.appendChild(td);
+            t.append(tr);
+        },
+        saveCard: function() {
+            localStorage['card'] = this.card;
+        },
+        restoreCard: function() {
+            this.card = localStorage['card'];
+        },
+        checkCard: function(card) {
+            let found = false;
+            for ( let c of this.cards )
+                if ( card === c )
+                    found = true;
+            return found ? card : (this.cards[0] || '');
+        },
+        getCurrentMonth: function() {
+            this.spendingDate = new Date();
+            this.spendingDate.setDate(1);
+            this.spendingDate.setHours(12);
+            this.spendingDateFormatted = formatDate(this.spendingDate);
+        },
+        nextMonth: function() {
+            let month = this.spendingDate.getMonth();
+            let year = month === 11
+                ? this.spendingDate.getUTCFullYear() + 1
+                : this.spendingDate.getUTCFullYear();
+            this.spendingDate.setMonth((month + 1)  % 12);
+            this.spendingDate.setYear(year);
+            this.spendingDateFormatted = formatDate(this.spendingDate);
+            this.getSpendings(this.card);
+        },
+        previousMonth: function() {
+            let month = this.spendingDate.getMonth();
+            let year = month === 0
+                ? this.spendingDate.getUTCFullYear() - 1
+                : this.spendingDate.getUTCFullYear();
+            this.spendingDate.setMonth((month + 12 - 1) % 12);
+            this.spendingDate.setYear(year);
+            this.spendingDateFormatted = formatDate(this.spendingDate);
+            this.getSpendings(this.card);
+        },
+        getSpendings: function(card) {
+            card = this.checkCard(card);
+            this.card = card;
+            this.saveCard();
+            return fetch(
+                `http://localhost:8080/spendings`
+                    + `?card=${this.card || ""}`
+                    + `&date=${formatDate(this.spendingDate)}`)
+                .then(response => response.json())
+                .then(data => {
+                    let spendings = {};
+                    for ( let item of data ) {
+                        spendings[item['type']] = item['spent_money'];
+                    }
+                    this.spendings = spendings;
+                });
+        },
+        getCards: function() {
+            return fetch('http://localhost:8080/items/distinct/card')
+                .then(response => response.json())
+                .then(data => (this.cards = data));
+        },
+        getTypes: function() {
+            return fetch('http://localhost:8080/items/distinct/type')
+                .then(response => response.json())
+                .then(data => (this.types = data));
+        },
+        spendingsForType: function(type) {
+            return this.spendings[type] || 0;
+        },
+        fullCredit: function() {
+            return fetch('http://localhost:8080/full_credit')
+                .then(response => response.json())
+                .then(data => (this.credit = data));
+        },
+    },
+    async beforeMount() {
+        this.restoreCard();
+        await this.getCurrentMonth();
+        await this.getCards();
+        await this.getSpendings(this.card);
+        this.getTypes();
+        this.fullCredit();
+    },
+}
+</script>

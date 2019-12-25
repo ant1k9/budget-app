@@ -58,6 +58,11 @@ app.get( "/items/distinct/:item", async ( req, res ) => {
     res.end();
 });
 
+app.get( "/:filename", ( req, res ) => {
+    let filename = req.params['filename'];
+    res.sendFile( path.join(__dirname, "../public", filename) );
+} );
+
 // define a route handler for the default home page
 app.get( "/", ( req, res ) => {
     res.sendFile( path.join(__dirname, "../public", "index.html") );
