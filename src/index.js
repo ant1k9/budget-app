@@ -3,7 +3,8 @@ const bodyParser = require( "body-parser" );
 const path = require( "path" );
 
 import { getRepository, createConnection } from "typeorm";
-import { Spending } from "./entity/models";
+import { Spending } from "./entity/Spending";
+import { Credit } from "./entity/Credit";
 
 const app = express();
 const port = 8080;
@@ -29,6 +30,16 @@ app.get( "/spendings", async ( req, res ) => {
     res.end();
 });
 
+app.get( "/full_credit", async ( req, res ) => {
+    let credit = await connection
+        .getRepository(Credit)
+        .createQueryBuilder("credit")
+        .select("SUM(credit.value)", "sum")
+        .getRawOne();
+    res.write(`${credit["sum"]}`);
+    res.end();
+});
+
 app.get( "/items/distinct/:item", async ( req, res ) => {
     let item = req.params["item"]
 
@@ -49,8 +60,21 @@ app.get( "/items/distinct/:item", async ( req, res ) => {
 
 // define a route handler for the default home page
 app.get( "/", ( req, res ) => {
-    res.sendFile( path.join(__dirname, "public", "index.html") );
+    res.sendFile( path.join(__dirname, "../public", "index.html") );
 } );
+
+app.post( "/credit", async( req, res ) => {
+    let value = req.body["value"];
+    let creditRepo = await connection.getRepository(Credit);
+
+    let credit = new Credit();
+    credit.month = new Date();
+    credit.value = value;
+    await creditRepo.save(credit);
+
+    res.redirect("/");
+    res.end();
+});
 
 app.post( "/", async ( req, res ) => {
     let card = req.body['card'];
@@ -82,4 +106,3 @@ app.post( "/", async ( req, res ) => {
 app.listen( port, () => {
     console.log( `server started at http://localhost:${ port }` );
 } );
-

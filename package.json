@@ -1,7 +1,7 @@
 {
     "main": "src/index.js",
     "scripts": {
-        "start": "babel src --out-dir dist && cp -ar src/public dist && node dist/index.js",
+        "start": "babel src --out-dir dist && node dist/index.js",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "dependencies": {
