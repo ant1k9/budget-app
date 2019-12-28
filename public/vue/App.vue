@@ -33,23 +33,84 @@
             </tr>
         </table>
         <hr style="width: 50%" align="left">
-        <div style="padding: 10px">
-            <div>Full credit: {{ credit }}</div><br/>
-            <div>Estimated budget: {{ debit }}</div><br/>
-            <div>This month spendings: {{ thisMonthSpendings }}</div><br/>
-            <div>All resources left: {{ leftoverAll }}</div><br/>
-            <div>Free resources this month: {{ leftover }}</div><br/>
-            <form method="post" action="/credit">
-                Add debit/credit value:
-                <input name="value">
-                <button>Save</button>
-            </form>
-            <form method="post" action="/debit">
-                Estimated budget:
-                <input name="value" :value="debit">
-                <button>Save</button>
-            </form>
+        <h3> Budget </h3>
+        <div>
+            <table>
+                <tr>
+                    <td style="padding: 5px">Full credit:</td>
+                    <td style="padding: 5px">{{ credit }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px">Estimated budget:</td>
+                    <td style="padding: 5px">{{ debit }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px">This month spendings:</td>
+                    <td style="padding: 5px">{{ thisMonthSpendings }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px">All resources left:</td>
+                    <td style="padding: 5px">{{ leftoverAll }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px">Free resources this month:</td>
+                    <td style="padding: 5px">{{ leftover }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px">Add debit/credit value:</td>
+                    <td style="padding: 5px">
+                        <form method="post" action="/credit">
+                            <input name="value">
+                            <button>Save</button>
+                        </form>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px">Estimated budget:</td>
+                    <td style="padding: 5px">
+                        <form method="post" action="/debit">
+                            <input name="value" :value="debit">
+                            <button>Save</button>
+                        </form>
+                    </td>
+                </tr>
+            </table>
         </div>
+        <hr style="width: 50%" align="left">
+        <h3> Wishlist </h3>
+        <table>
+            <tr v-for="wish, index in wishlist">
+                <td style="padding: 8px; vertical-align: middle">
+                    <h4>#{{index + 1}} - {{ wish.description }}</h4>
+                </td>
+                <td style="padding: 8px; vertical-align: middle" v-if="index > 0">
+                    <form method="post" action="/wishlist/swap">
+                        <input type="hidden" name="first" :value="wishlist[index].description">
+                        <input type="hidden" name="second" :value="wishlist[index-1].description">
+                        <button>⬆</button>
+                    </form>
+                </td>
+                <td style="padding: 8px; vertical-align: middle" v-else></td>
+                <td style="padding: 8px; vertical-align: middle" v-if="index < wishlist.length - 1">
+                    <form method="post" action="/wishlist/swap">
+                        <input type="hidden" name="first" :value="wishlist[index].description">
+                        <input type="hidden" name="second" :value="wishlist[index+1].description">
+                        <button>⬇</button>
+                    </form>
+                </td>
+                <td style="padding: 8px; vertical-align: middle" v-else></td>
+                <td style="padding: 8px; vertical-align: middle">
+                    <form method="post" action="/wishlist/remove">
+                        <input type="hidden" name="desc" :value="wish.description">
+                        <button>✔</button>
+                    </form>
+                </td>
+            </tr>
+        </table><br/>
+        <form method="post" action="wishlist">
+            <input name="description">
+            <button>Add wish </button>
+        </form>
     </div>
 </template>
 
@@ -60,19 +121,20 @@ const formatDate = (d) =>
 export default {
     data() {
         return {
-            'spendings': {},
-            'cards': [],
-            'types': [],
-            'spendingDate': undefined,
-            'spendingDateFormatted': '',
-            'card': '',
-            'credit': 0,
-            'debit': 0,
-            'thisMonthSpendings': 0,
-            'leftover': 0,
-            'leftoverAll': 0,
-            'newCard': '',
-            'newType': '',
+            "spendings": {},
+            "cards": [],
+            "types": [],
+            "spendingDate": undefined,
+            "spendingDateFormatted": "",
+            "card": "",
+            "credit": 0,
+            "debit": 0,
+            "thisMonthSpendings": 0,
+            "leftover": 0,
+            "leftoverAll": 0,
+            "newCard": "",
+            "newType": "",
+            "wishlist": [],
         }
     },
     methods: {
@@ -83,17 +145,17 @@ export default {
             this.types.push(this.newType);
         },
         saveCard: function() {
-            localStorage['card'] = this.card;
+            localStorage["card"] = this.card;
         },
         restoreCard: function() {
-            this.card = localStorage['card'];
+            this.card = localStorage["card"];
         },
         checkCard: function(card) {
             let found = false;
             for ( let c of this.cards )
                 if ( card === c )
                     found = true;
-            return found ? card : (this.cards[0] || '');
+            return found ? card : (this.cards[0] || "");
         },
         getCurrentMonth: function() {
             this.spendingDate = new Date();
@@ -126,25 +188,23 @@ export default {
             this.card = card;
             this.saveCard();
             return fetch(
-                `http://localhost:8080/spendings`
-                    + `?card=${this.card || ""}`
-                    + `&date=${formatDate(this.spendingDate)}`)
+                `/spendings?card=${this.card || ""}&date=${formatDate(this.spendingDate)}`)
                 .then(response => response.json())
                 .then(data => {
                     let spendings = {};
                     for ( let item of data ) {
-                        spendings[item['type']] = item['spent_money'];
+                        spendings[item["type"]] = item["spent_money"];
                     }
                     this.spendings = spendings;
                 });
         },
         getCards: function() {
-            return fetch('http://localhost:8080/items/distinct/card')
+            return fetch("/items/distinct/card")
                 .then(response => response.json())
                 .then(data => (this.cards = data));
         },
         getTypes: function() {
-            return fetch('http://localhost:8080/items/distinct/type')
+            return fetch("/items/distinct/type")
                 .then(response => response.json())
                 .then(data => (this.types = data));
         },
@@ -152,23 +212,28 @@ export default {
             return this.spendings[type] || 0;
         },
         getCredit: function() {
-            return fetch('http://localhost:8080/credit')
+            return fetch("/credit")
                 .then(response => response.json())
                 .then(data => (this.credit = data));
         },
         getDebit: function() {
-            return fetch('http://localhost:8080/debit')
+            return fetch("/debit")
                 .then(response => response.json())
                 .then(data => (this.debit = data));
         },
         getLeftover: function() {
-            return fetch('http://localhost:8080/leftover')
+            return fetch("/leftover")
                 .then(response => response.json())
                 .then(data => {
                     this.leftover = data["leftover"];
                     this.thisMonthSpendings = data["spendings"];
                     this.leftoverAll = data["leftoverAll"];
                 });
+        },
+        getWishlist: function() {
+            return fetch("/wishlist")
+                .then(response => response.json())
+                .then(data => this.wishlist = data);
         },
     },
     async beforeMount() {
@@ -180,6 +245,7 @@ export default {
         this.getCredit();
         this.getDebit();
         this.getLeftover();
+        await this.getWishlist();
     },
 }
 </script>

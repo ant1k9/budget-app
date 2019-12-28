@@ -6,6 +6,7 @@ import { getRepository, createConnection } from "typeorm";
 import { Spending } from "./entity/Spending";
 import { Credit } from "./entity/Credit";
 import { Debit } from "./entity/Debit";
+import { Wish } from "./entity/Wishlist";
 
 const app = express();
 const port = 8080;
@@ -141,6 +142,18 @@ app.get( "/items/distinct/:item", async ( req, res ) => {
     res.end();
 });
 
+app.get( "/wishlist", async ( req, res ) => {
+    let wishRepo = await connection.getRepository(Wish);
+    let wishlist = await wishRepo.createQueryBuilder("wishlist")
+        .select("description")
+        .where("NOT is_done")
+        .orderBy("priority")
+        .getRawMany();
+
+    res.send(JSON.stringify(wishlist));
+    res.end();
+});
+
 app.get( "/:filename", ( req, res ) => {
     let filename = req.params["filename"];
     res.sendFile( path.join(__dirname, "../public", filename) );
@@ -179,6 +192,55 @@ app.post( "/debit", async( req, res ) => {
     debit.month = date;
     debit.value = value;
     await debitRepo.save(debit);
+
+    res.redirect("/");
+    res.end();
+});
+
+app.post( "/wishlist/swap", async ( req, res ) => {
+    let first = req.body["first"];
+    let second = req.body["second"];
+    let wishRepo = await connection.getRepository(Wish);
+
+    let firstWish = await wishRepo.findOne({is_done: false, description: first});
+    let secondWish = await wishRepo.findOne({is_done: false, description: second});
+
+    if ( firstWish !== undefined && secondWish !== undefined ) {
+        let tmp = firstWish.priority;
+        firstWish.priority = secondWish.priority;
+        secondWish.priority = tmp;
+        await wishRepo.save([firstWish, secondWish]);
+    }
+
+    res.redirect("/");
+    res.end();
+});
+
+app.post( "/wishlist/remove", async ( req, res ) =>  {
+    let wishRepo = await connection.getRepository(Wish);
+    await wishRepo.createQueryBuilder("wishlist")
+        .update()
+        .set({is_done: true})
+        .where("NOT wishlist.is_done AND wishlist.description = :desc", { desc: req.body["desc"] })
+        .execute();
+
+    res.redirect("/");
+    res.end();
+});
+
+app.post( "/wishlist", async ( req, res ) => {
+    let wishRepo = await connection.getRepository(Wish);
+    let newWish = new Wish();
+
+    let maxPriority = await wishRepo.createQueryBuilder("wishlist")
+        .select("MAX(priority)", "max")
+        .getRawOne();
+
+    newWish.description = req.body["description"];
+    newWish.is_done = false;
+    newWish.priority = (maxPriority["max"] || 0) + 1;
+
+    wishRepo.save(newWish);
 
     res.redirect("/");
     res.end();
