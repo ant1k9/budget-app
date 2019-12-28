@@ -33,11 +33,20 @@
             </tr>
         </table>
         <hr style="width: 50%" align="left">
-        <div>
-            Full credit: {{ credit }}<br/><br/>
+        <div style="padding: 10px">
+            <div>Full credit: {{ credit }}</div><br/>
+            <div>Estimated budget: {{ debit }}</div><br/>
+            <div>This month spendings: {{ thisMonthSpendings }}</div><br/>
+            <div>All resources left: {{ leftoverAll }}</div><br/>
+            <div>Free resources this month: {{ leftover }}</div><br/>
             <form method="post" action="/credit">
                 Add debit/credit value:
                 <input name="value">
+                <button>Save</button>
+            </form>
+            <form method="post" action="/debit">
+                Estimated budget:
+                <input name="value" :value="debit">
                 <button>Save</button>
             </form>
         </div>
@@ -58,36 +67,20 @@ export default {
             'spendingDateFormatted': '',
             'card': '',
             'credit': 0,
+            'debit': 0,
+            'thisMonthSpendings': 0,
+            'leftover': 0,
+            'leftoverAll': 0,
             'newCard': '',
             'newType': '',
         }
     },
     methods: {
         addCard: function() {
-            let t = document.getElementById('card-buttons');
-            let button = document.createElement('BUTTON');
-            button.style.margin = '10px';
-            button.onclick = _ => this.getSpendings(this.newCard);
-            button.textContent = this.newCard;
             this.cards.push(this.newCard);
-            t.appendChild(button);
         },
         addType: function() {
-            let t = document.getElementById('spendings-as-t');
-            let tr = document.createElement('TR');
-            let td = document.createElement('TD');
-            td.textContent = this.newType;
-            td.style.padding = '12px';
-            tr.appendChild(td);
-
-            td = document.createElement('TD');
-            let input = document.createElement('INPUT');
-            input.setAttribute('name', this.newType);
-            input.setAttribute('value', '0');
-            td.appendChild(input);
-
-            tr.appendChild(td);
-            t.append(tr);
+            this.types.push(this.newType);
         },
         saveCard: function() {
             localStorage['card'] = this.card;
@@ -158,10 +151,24 @@ export default {
         spendingsForType: function(type) {
             return this.spendings[type] || 0;
         },
-        fullCredit: function() {
-            return fetch('http://localhost:8080/full_credit')
+        getCredit: function() {
+            return fetch('http://localhost:8080/credit')
                 .then(response => response.json())
                 .then(data => (this.credit = data));
+        },
+        getDebit: function() {
+            return fetch('http://localhost:8080/debit')
+                .then(response => response.json())
+                .then(data => (this.debit = data));
+        },
+        getLeftover: function() {
+            return fetch('http://localhost:8080/leftover')
+                .then(response => response.json())
+                .then(data => {
+                    this.leftover = data["leftover"];
+                    this.thisMonthSpendings = data["spendings"];
+                    this.leftoverAll = data["leftoverAll"];
+                });
         },
     },
     async beforeMount() {
@@ -170,7 +177,9 @@ export default {
         await this.getCards();
         await this.getSpendings(this.card);
         this.getTypes();
-        this.fullCredit();
+        this.getCredit();
+        this.getDebit();
+        this.getLeftover();
     },
 }
 </script>
