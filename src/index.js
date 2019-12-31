@@ -197,6 +197,42 @@ app.post( "/debit", async( req, res ) => {
     res.end();
 });
 
+app.post( "/recalculate_credit", async ( req, res ) => {
+    let debitRepo = await connection.getRepository(Debit);
+    let creditRepo = await connection.getRepository(Credit);
+    let spendingRepo = await connection.getRepository(Spending);
+    let date = currentDate();
+
+    if ( date.getUTCMonth() == 0 ) {
+        date.setMonth( 11 );
+        date.setYear( date.getUTCFullYear() - 1 );
+    } else {
+        date.setMonth( date.getUTCMonth() - 1 );
+    }
+
+    let debitLastMonth = await debitRepo.find({"month": date});
+    if ( debitLastMonth.length > 0 ) {
+        let debit = debitLastMonth[0];
+        let lastMonthIrregularSpendings = await spendingRepo
+            .createQueryBuilder("my_wallet")
+            .select("SUM(my_wallet.spent_money)", "total")
+            .where("my_wallet.month = :date", { date: date })
+            .andWhere("my_wallet.type NOT IN (:...types)", { types: ["education"] })
+            .getRawOne();
+
+        let extraCredit = new Credit();
+        extraCredit.value = debit.value - lastMonthIrregularSpendings["total"];
+        extraCredit.month = new Date();
+        creditRepo.save(extraCredit);
+
+        debit.is_recalculated = true;
+        debitRepo.save(debit);
+    }
+
+    res.redirect("/");
+    res.end();
+});
+
 app.post( "/wishlist/swap", async ( req, res ) => {
     let first = req.body["first"];
     let second = req.body["second"];

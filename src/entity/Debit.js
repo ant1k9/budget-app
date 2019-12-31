@@ -10,4 +10,7 @@ export class Debit {
 
     @Column("date")
     month = 0;
+
+    @Column("boolean", {default: false})
+    is_recalculated = false;
 }

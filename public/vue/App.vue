@@ -74,6 +74,13 @@
                         </form>
                     </td>
                 </tr>
+                <tr>
+                    <td>
+                        <form method="post" action="/recalculate_credit">
+                            <button>Recalculate credit for last month</button>
+                        </form>
+                    </td>
+                </tr>
             </table>
         </div>
         <hr style="width: 50%" align="left">
