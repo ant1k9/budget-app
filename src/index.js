@@ -39,7 +39,7 @@ const currentDate = _ => {
 };
 
 app.get( "/spendings", async ( req, res ) => {
-    let card = req.query["card"] || "mkb";
+    let card = req.query["card"];
     let date = req.query["date"];
 
     let spendings = await connection
@@ -211,7 +211,7 @@ app.post( "/recalculate_credit", async ( req, res ) => {
     }
 
     let debitLastMonth = await debitRepo.find({"month": date});
-    if ( debitLastMonth.length > 0 ) {
+    if ( debitLastMonth.length > 0 && !debitLastMonth[0].is_recalculated ) {
         let debit = debitLastMonth[0];
         let lastMonthIrregularSpendings = await spendingRepo
             .createQueryBuilder("my_wallet")
