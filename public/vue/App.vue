@@ -69,7 +69,7 @@
                     <td style="padding: 5px">Estimated budget:</td>
                     <td style="padding: 5px">
                         <form method="post" action="/debit">
-                            <input name="value" :value="debit">
+                            <input name="value">
                             <button>Save</button>
                         </form>
                     </td>
