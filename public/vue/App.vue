@@ -7,9 +7,11 @@
                     {{ card }}
                 </button>
             </span>
-            <button v-on:click="previousMonth()">&#8592;</button>
+        </div>
+        <div>
+            <button v-on:click="previousMonth()" style="margin: 10px">&#8592;</button>
             {{ spendingDateFormatted }}
-            <button v-on:click="nextMonth()">&#8594;</button>
+            <button v-on:click="nextMonth()" style="margin: 10px">&#8594;</button>
         </div>
         <form method="post">
             <table>
@@ -28,6 +30,8 @@
             <tr>
                 <td><input v-model="newCard"></td>
                 <td style="padding: 10px"><button v-on:click="addCard()">Add card</button></td>
+            </tr>
+            <tr>
                 <td><input v-model="newType"></td>
                 <td style="padding: 10px"><button v-on:click="addType()">Add type</button></td>
             </tr>
