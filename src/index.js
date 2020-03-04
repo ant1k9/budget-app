@@ -14,7 +14,14 @@ const port = 8080;
 app.use(bodyParser.urlencoded({ extended: false }));
 
 let connection;
-createConnection().then(conn => connection = conn);
+
+createConnection({
+    type: "postgres",
+    url: process.env.DATABASE_URL,
+    entities: [
+      "dist/entity/*.js",
+    ],
+}).then(conn => connection = conn);
 
 const getDebitInfo = async _ => {
     return await connection
