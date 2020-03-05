@@ -15,7 +15,7 @@ import { Debit } from "./entity/Debit";
 import { Wish } from "./entity/Wishlist";
 
 const app = express();
-const port = 8080;
+const port = process.env.PORT || 5000;
 
 const dummy = { id: "test@test.test", email: "test@test.test", password: process.env.APP_PASSWORD };
 
