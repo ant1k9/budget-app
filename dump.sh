@@ -3,11 +3,34 @@ set -euo pipefail
 
 cd /tmp
 
+HEROKU_APP="my-monthly-budget-app"
 DB_BACKUP_PATH="wallet.dump.sql"
 DB_BACKUP_ARCHIVE="$DB_BACKUP_PATH.zip"
 DROPBOX_PATH="/wallet/$(date +'%Y%m%d_%H%M%S').sql.zip"
 
-pg_dump -Uwallet > "$DB_BACKUP_PATH"
+heroku="/usr/local/bin/heroku"
+CURRENT_BACKUP_VERSION="$(
+    $heroku pg:backups \
+        -a $HEROKU_APP \
+        | grep -Eo 'b[0-9]+' \
+        | tail -1\
+)"
+
+# Delete last backup
+$heroku pg:backups:delete \
+    -a $HEROKU_APP \
+    --confirm "$HEROKU_APP" \
+    "$CURRENT_BACKUP_VERSION"
+
+# Create new backup
+$heroku pg:backups:capture \
+    -a $HEROKU_APP
+
+# Download backup
+$heroku pg:backups:download \
+    -a $HEROKU_APP \
+    -o "$DB_BACKUP_PATH"
+
 zip "$DB_BACKUP_ARCHIVE" "$DB_BACKUP_PATH"
 rm "$DB_BACKUP_PATH"
 
