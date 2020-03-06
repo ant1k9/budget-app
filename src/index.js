@@ -22,8 +22,7 @@ const dummy = { id: "test@test.test", email: "test@test.test", password: process
 passport.use(new LocalStrategy(
   { usernameField: "email" },
   (email, password, done) => {
-    let savedPassword = process.env.APP_PASSWORD;
-    if( password === savedPassword ) {
+    if( password === process.env.APP_PASSWORD ) {
       return done(null, dummy);
     }
     return done(null, false, { message: 'Invalid credentials.\n' });
@@ -44,7 +43,7 @@ app.use(session({
     return uuid() // use UUIDs for session IDs
   },
   store: new FileStore(),
-  secret: "keyboard cat",
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: true
 }));
