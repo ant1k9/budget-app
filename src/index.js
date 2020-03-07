@@ -5,7 +5,7 @@ const uuid = require("uuid").v4;
 const passport = require("passport");
 const session = require("express-session")
 
-const FileStore = require("session-file-store")(session);
+const PostgreSqlStore = require('connect-pg-simple')(session);
 const LocalStrategy = require("passport-local").Strategy;
 
 import { getRepository, createConnection } from "typeorm";
@@ -42,7 +42,9 @@ app.use(session({
   genid: (req) => {
     return uuid() // use UUIDs for session IDs
   },
-  store: new FileStore(),
+  store: new PostgreSqlStore({
+    connString: process.env.DATABASE_URL,
+  }),
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: true
