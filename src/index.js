@@ -234,7 +234,7 @@ app.post( "/credit", async( req, res ) => {
     credit.value = value;
     await creditRepo.save(credit);
 
-    res.redirect("/");
+    res.redirect(req.body["next"] || "/");
     res.end();
   } else {
     res.redirect("/login");
@@ -258,7 +258,7 @@ app.post( "/debit", async( req, res ) => {
     debit.value = value;
     await debitRepo.save(debit);
 
-    res.redirect("/");
+    res.redirect(req.body["next"] || "/");
     res.end();
   } else {
     res.redirect("/login");
@@ -298,7 +298,7 @@ app.post( "/recalculate_credit", async ( req, res ) => {
       debitRepo.save(debit);
     }
 
-    res.redirect("/");
+    res.redirect(req.body["next"] || "/");
     res.end();
   } else {
     res.redirect("/login");
@@ -321,7 +321,7 @@ app.post( "/wishlist/swap", async ( req, res ) => {
       await wishRepo.save([firstWish, secondWish]);
     }
 
-    res.redirect("/");
+    res.redirect(req.body["next"] || "/");
     res.end();
   } else {
     res.redirect("/login");
@@ -337,7 +337,7 @@ app.post( "/wishlist/remove", async ( req, res ) =>  {
       .where("NOT wishlist.is_done AND wishlist.description = :desc", { desc: req.body["desc"] })
       .execute();
 
-    res.redirect("/");
+    res.redirect(req.body["next"] || "/");
     res.end();
   } else {
     res.redirect("/login");
@@ -359,7 +359,7 @@ app.post( "/wishlist", async ( req, res ) => {
 
     wishRepo.save(newWish);
 
-    res.redirect("/");
+    res.redirect(req.body["next"] || "/");
     res.end();
   } else {
     res.redirect("/login");
@@ -402,7 +402,7 @@ app.get( "/:filename", ( req, res ) => {
 } );
 
 // define a route handler for the default home page
-app.get( "/", ( req, res ) => {
+app.get( "*", ( req, res ) => {
   if (req.isAuthenticated()) {
     res.sendFile( path.join(__dirname, "../public", "index.html") );
   } else {
@@ -433,7 +433,7 @@ app.post( "/", async ( req, res ) => {
       }
     }
 
-    res.redirect("/");
+    res.redirect(req.body["next"] || "/");
     res.end();
   } else {
     res.redirect("/login");
