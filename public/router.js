@@ -4,7 +4,6 @@ const BudgetApp = require('./vue/Budget.vue');
 const WishlistApp = require('./vue/Wishlist.vue');
 
 const router = new VueRouter({
-  // mode: 'history',
   base: __dirname,
   routes: [
     { path: '/', component: CardApp },

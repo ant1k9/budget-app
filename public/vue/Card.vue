@@ -10,22 +10,22 @@
       </span>
     </div>
     <div>
-      <button v-on:click="previousMonth()" class="card-app-button">&#8592;</button>
-      {{ spendingDateFormatted }}
-      <button v-on:click="nextMonth()" class="card-app-button">&#8594;</button>
-    </div>
     <form method="post">
+      <button v-on:click.prevent="previousMonth()" class="card-app-button">&#8592;</button>
+      {{ spendingDateFormatted }}
+      <button v-on:click.prevent="nextMonth()" class="card-app-button">&#8594;</button>
+      <button class="card-app-button">Send</button>
       <table>
         <tr v-for="type in allTypes">
           <td class="card-app-td"> {{ type }} </td>
           <td><input :name="type" :value="spendingsForType(type)"> </td>
         </tr>
       </table>
-      <button>Send</button>
       <input type="hidden" name="date" :value="spendingDateFormatted">
       <input type="hidden" name="card" :value="card">
       <input type="hidden" name="next" value="/#/">
     </form>
+    </div>
     <TypesApp />
   </div>
 </template>
@@ -69,15 +69,14 @@ export default {
       return localStorage["card"];
     },
     saveCard: function(card) {
-      localStorage["card"] = this.card =
-        this.$store.state.cards.includes(card) ? card : "cash";
+      localStorage["card"] = this.card = card;
     },
     nextMonth: function() {
-      this.$store.commit('nextMonth');
+      this.$store.commit("nextMonth");
       this.getSpendings(this.card);
     },
     previousMonth: function() {
-      this.$store.commit('previousMonth');
+      this.$store.commit("previousMonth");
       this.getSpendings(this.card);
     },
     getSpendings: function(card) {
@@ -97,7 +96,7 @@ export default {
     },
   },
   async beforeMount() {
-    this.card = this.restoreCard();
+    this.card = this.restoreCard() || "cash";
     await this.getSpendings(this.card);
   },
 };

@@ -417,7 +417,7 @@ app.post( "/", async ( req, res ) => {
     let spendingRepo = await connection.getRepository(Spending);
 
     for ( let type of Object.keys(req.body) ) {
-      if ( type !== "card" && type !== "date" ) {
+      if ( type !== "card" && type !== "date" && type !== "next" ) {
         let objects = await spendingRepo.findAndCount({card: card, month: date, type: type});
         if ( objects[1] === 0 ) {
           let spending = new Spending();
