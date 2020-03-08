@@ -66,7 +66,7 @@ export default {
       },
       actions: {
         addValue: {
-          description: "Add debit/credit value",
+          description: "Add debit|credit",
           hasInput: true,
           url: "/credit",
         },
