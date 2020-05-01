@@ -1,7 +1,7 @@
 <template>
   <div>
     <MenuApp />
-    <h3 class="card-margin-left"><span>{{ card }}</span></h3>
+    <h3 class="card-margin-left"><span>{{ card }}</span> <span v-on:click="removeCard(card)"> ✗ </span></h3>
     <div>
       <span id="card-buttons">
         <button v-for="card in allCards" class="card-app-button" v-on:click="getSpendings(card)">
@@ -10,21 +10,21 @@
       </span>
     </div>
     <div>
-    <form method="post">
-      <button v-on:click.prevent="previousMonth()" class="card-app-button">&#8592;</button>
-      {{ spendingDateFormatted }}
-      <button v-on:click.prevent="nextMonth()" class="card-app-button">&#8594;</button>
-      <button class="card-app-button">Send</button>
-      <table>
-        <tr v-for="type in allTypes">
-          <td class="card-app-td"> {{ type }} </td>
-          <td><input :name="type" :value="spendingsForType(type)"> </td>
-        </tr>
-      </table>
-      <input type="hidden" name="date" :value="spendingDateFormatted">
-      <input type="hidden" name="card" :value="card">
-      <input type="hidden" name="next" value="/#/">
-    </form>
+      <form method="post">
+        <button v-on:click.prevent="previousMonth()" class="card-app-button">&#8592;</button>
+        {{ spendingDateFormatted }}
+        <button v-on:click.prevent="nextMonth()" class="card-app-button">&#8594;</button>
+        <button class="card-app-button">Send</button>
+        <table>
+          <tr v-for="type in allTypes">
+            <td class="card-app-td"> {{ type }} </td>
+            <td><input :name="type" :value="spendingsForType(type)"> </td>
+          </tr>
+        </table>
+        <input type="hidden" name="date" :value="spendingDateFormatted">
+        <input type="hidden" name="card" :value="card">
+        <input type="hidden" name="next" value="/#/">
+      </form>
     </div>
     <TypesApp />
   </div>
@@ -65,8 +65,13 @@ export default {
     }
   },
   methods: {
-    restoreCard: function() {
-      return localStorage["card"];
+    restoreCard: () => localStorage["card"],
+    removeCard: function(card) {
+      fetch(`/card/${card}`, { method: "DELETE" });
+      let cards = this.$store.state.cards;
+      let idx = cards.indexOf( card );
+      ( idx != -1 ) ?  cards.splice(idx, 1) : undefined;
+      ( cards.length > 0 ) ?  this.getSpendings( this.$store.state.cards[0] ) : undefined;
     },
     saveCard: function(card) {
       localStorage["card"] = this.card = card;

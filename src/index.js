@@ -9,15 +9,19 @@ const PostgreSqlStore = require('connect-pg-simple')(session);
 const LocalStrategy = require("passport-local").Strategy;
 
 import { getRepository, createConnection } from "typeorm";
-import { Spending } from "./entity/Spending";
+import { Card } from "./entity/Card";
 import { Credit } from "./entity/Credit";
 import { Debit } from "./entity/Debit";
+import { Spending } from "./entity/Spending";
 import { Wish } from "./entity/Wishlist";
 
 const app = express();
 const port = process.env.PORT || 5000;
 
 const dummy = { id: "test@test.test", email: "test@test.test", password: process.env.APP_PASSWORD };
+
+// connection to DB
+let connection;
 
 passport.use(new LocalStrategy(
   { usernameField: "email" },
@@ -52,14 +56,13 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-let connection;
-
 createConnection({
   type: "postgres",
   url: process.env.DATABASE_URL,
   entities: [
     "dist/entity/*.js",
   ],
+  synchronize: true,
 }).then(conn => connection = conn);
 
 const getDebitInfo = async _ => {
@@ -137,6 +140,8 @@ app.get( "/leftover", async ( req, res ) => {
     let spendingRepo = await connection.getRepository(Spending);
     let date = currentDate();
 
+    debit += (+credit > 0) ? +credit : 0;
+
     let sixMonthsAgo = new Date(date);
     if ( sixMonthsAgo.getMonth() > 5 )
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
@@ -172,7 +177,6 @@ app.get( "/leftover", async ( req, res ) => {
 
     let averageRegularSpendings = regularSpendingsLastSixMonths["total"] / 6;
     let leftover = debit - averageRegularSpendings - thisMonthIrregularSpendings["total"];
-    leftover += credit > 0 ? credit : 0;
 
     res.write(JSON.stringify({
       leftover: `${Math.round(leftover)}`,
@@ -189,16 +193,27 @@ app.get( "/items/distinct/:item", async ( req, res ) => {
   if (req.isAuthenticated()) {
     let item = req.params["item"]
 
-    let items = await connection
+    let query = connection
       .getRepository(Spending)
       .createQueryBuilder("my_wallet")
       .select(item)
-      .distinct()
-      .getRawMany();
+      .distinct();
 
-    for ( let i in items ) {
-      items[i] = items[i][item];
+    if ( item === "card" ) {
+      let excludedCards = await connection
+        .getRepository(Card)
+        .createQueryBuilder("my_wallet")
+        .select("name")
+        .distinct()
+        .getRawMany();
+      excludedCards = excludedCards.map(card => card["name"]);
+      if ( excludedCards.length > 0 ) {
+        query = query.where("my_wallet.card NOT IN (:...cards)", { cards: excludedCards });
+      }
     }
+
+    let items = await query.getRawMany();
+    items = items.map(i => i[item]);
     items.sort();
 
     res.write(JSON.stringify(items));
@@ -222,6 +237,15 @@ app.get( "/wishlist", async ( req, res ) => {
   } else {
     res.redirect("/login");
   }
+});
+
+app.delete( "/card/:card", async ( req, res ) => {
+  if ( req.isAuthenticated() ) {
+    let card = new Card();
+    card.name = req.params["card"];
+    await connection.getRepository( Card ).save( card );
+  }
+  res.end();
 });
 
 app.post( "/credit", async( req, res ) => {
@@ -415,6 +439,8 @@ app.post( "/", async ( req, res ) => {
     let card = req.body["card"];
     let date = req.body["date"];
     let spendingRepo = await connection.getRepository(Spending);
+
+    await connection.getRepository( Card ).delete({ name: card });
 
     for ( let type of Object.keys(req.body) ) {
       if ( type !== "card" && type !== "date" && type !== "next" ) {
