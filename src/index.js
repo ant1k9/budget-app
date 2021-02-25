@@ -3,7 +3,9 @@ const bodyParser = require( "body-parser" );
 const path = require( "path" );
 const uuid = require("uuid").v4;
 const passport = require("passport");
-const session = require("express-session")
+const session = require("express-session");
+const pgConnectionString = require('pg-connection-string');
+const pg = require('pg');
 
 const PostgreSqlStore = require('connect-pg-simple')(session);
 const LocalStrategy = require("passport-local").Strategy;
@@ -41,13 +43,21 @@ passport.deserializeUser((id, done) => {
   done(null, dummy);
 });
 
+const config = pgConnectionString.parse(process.env.DATABASE_URL)
+config.ssl = {
+  sslmode: 'require',
+  rejectUnauthorized: false
+}
+
+const pool = new pg.Pool(config)
+
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(session({
   genid: (req) => {
     return uuid() // use UUIDs for session IDs
   },
   store: new PostgreSqlStore({
-    connString: process.env.DATABASE_URL,
+    pool: pool,
   }),
   secret: process.env.SESSION_SECRET,
   resave: false,
@@ -63,6 +73,7 @@ createConnection({
     "dist/entity/*.js",
   ],
   synchronize: true,
+  ssl: config.ssl,
 }).then(conn => connection = conn);
 
 const getDebitInfo = async _ => {
