@@ -35,11 +35,11 @@ passport.use(new LocalStrategy(
   }
 ));
 
-passport.serializeUser((user, done) => {
+passport.serializeUser((_, done) => {
   done(null, dummy.id);
 });
 
-passport.deserializeUser((id, done) => {
+passport.deserializeUser((_, done) => {
   done(null, dummy);
 });
 
@@ -53,7 +53,7 @@ const pool = new pg.Pool(config)
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(session({
-  genid: (req) => {
+  genid: () => {
     return uuid() // use UUIDs for session IDs
   },
   store: new PostgreSqlStore({
@@ -70,7 +70,7 @@ createConnection({
   type: "postgres",
   url: process.env.DATABASE_URL,
   entities: [
-    "dist/entity/*.js",
+    "entity/*.js",
   ],
   synchronize: true,
   ssl: config.ssl,
@@ -402,7 +402,7 @@ app.post( "/wishlist", async ( req, res ) => {
 });
 
 app.get( "/login", async ( req, res ) => {
-  res.sendFile( path.join(__dirname, "../public", "login.html") );
+  res.sendFile( path.join(__dirname, "public", "login.html") );
 } );
 
 app.post( "/login", async ( req, res, next ) => {
@@ -430,7 +430,7 @@ app.post( "/login", async ( req, res, next ) => {
 app.get( "/:filename", ( req, res ) => {
   if (req.isAuthenticated()) {
     let filename = req.params["filename"];
-    res.sendFile( path.join(__dirname, "../public", filename) );
+    res.sendFile( path.join(__dirname, "public", filename) );
   } else {
     res.redirect("/login");
   }
@@ -439,7 +439,7 @@ app.get( "/:filename", ( req, res ) => {
 // define a route handler for the default home page
 app.get( "*", ( req, res ) => {
   if (req.isAuthenticated()) {
-    res.sendFile( path.join(__dirname, "../public", "index.html") );
+    res.sendFile( path.join(__dirname, "public", "index.html") );
   } else {
     res.redirect("/login");
   }
